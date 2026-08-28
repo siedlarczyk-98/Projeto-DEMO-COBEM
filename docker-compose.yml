@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cobem_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cobem
+      POSTGRES_PASSWORD: cobem
+      POSTGRES_DB: cobem
+    ports:
+      - "5433:5432"
+    volumes:
+      - cobem_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cobem -d cobem"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  cobem_pgdata:
