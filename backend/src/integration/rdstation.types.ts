@@ -1,5 +1,5 @@
 /** Perfis que a LP coleta — espelha o enum do Prisma. */
-export type PerfilLead = 'ALUNO' | 'PROFESSOR';
+export type PerfilLead = 'ALUNO' | 'PROFESSOR' | 'COORDENADOR' | 'REITORIA';
 
 /** Dados do lead que interessam para a conversão no RD. */
 export interface RdLeadInput {
