@@ -6,10 +6,18 @@ import './styles.css';
 
 type Status = 'idle' | 'enviando' | 'redirecionando';
 
+const PERFIS: { valor: Perfil; rotulo: string }[] = [
+  { valor: 'ALUNO', rotulo: 'Aluno' },
+  { valor: 'PROFESSOR', rotulo: 'Professor' },
+  { valor: 'COORDENADOR', rotulo: 'Coordenador' },
+  { valor: 'REITORIA', rotulo: 'Reitoria' },
+];
+
 export default function App() {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
+  const [ies, setIes] = useState('');
   const [perfil, setPerfil] = useState<Perfil | ''>('');
   const [status, setStatus] = useState<Status>('idle');
   const [erros, setErros] = useState<string[]>([]);
@@ -26,6 +34,7 @@ export default function App() {
         nome,
         email,
         telefone: onlyDigits(telefone),
+        ies,
         perfil: perfil as Perfil,
       });
 
@@ -105,19 +114,33 @@ export default function App() {
           />
         </label>
 
+        <label>
+          Universidade (IES)
+          <input
+            value={ies}
+            onChange={(e) => setIes(e.target.value)}
+            placeholder="Ex.: Universidade Federal de Minas Gerais"
+            autoComplete="organization"
+            required
+          />
+        </label>
+
         <fieldset className="perfil">
           <legend>Você é</legend>
-          {(['ALUNO', 'PROFESSOR'] as const).map((p) => (
-            <label key={p} className={perfil === p ? 'opcao ativa' : 'opcao'}>
+          {PERFIS.map(({ valor, rotulo }) => (
+            <label
+              key={valor}
+              className={perfil === valor ? 'opcao ativa' : 'opcao'}
+            >
               <input
                 type="radio"
                 name="perfil"
-                value={p}
-                checked={perfil === p}
-                onChange={() => setPerfil(p)}
+                value={valor}
+                checked={perfil === valor}
+                onChange={() => setPerfil(valor)}
                 required
               />
-              {p === 'ALUNO' ? 'Aluno' : 'Professor'}
+              {rotulo}
             </label>
           ))}
         </fieldset>

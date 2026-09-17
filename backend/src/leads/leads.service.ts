@@ -30,6 +30,7 @@ export class LeadsService {
         email: dto.email,
         telefone: dto.telefone,
         perfil: dto.perfil as Perfil,
+        ies: dto.ies,
         ip: meta.ip,
         userAgent: meta.userAgent,
       },
@@ -63,6 +64,7 @@ export class LeadsService {
         email: true,
         telefone: true,
         perfil: true,
+        ies: true,
         createdAt: true,
       },
     });

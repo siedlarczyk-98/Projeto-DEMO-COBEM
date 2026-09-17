@@ -24,9 +24,20 @@ export class Paciente360Service {
 
   constructor(private readonly config: ConfigService) {}
 
-  /** aluno -> usuario | professor -> professor */
+  /**
+   * O Paciente 360 so conhece tres papeis. Coordenacao e reitoria sao perfis
+   * de gestao, entao entram como `admin`; o perfil real fica no nosso banco.
+   */
   private mapRole(perfil: LeadInput['perfil']): P360Role {
-    return perfil === 'PROFESSOR' ? 'professor' : 'usuario';
+    switch (perfil) {
+      case 'PROFESSOR':
+        return 'professor';
+      case 'COORDENADOR':
+      case 'REITORIA':
+        return 'admin';
+      default:
+        return 'usuario';
+    }
   }
 
   /** Remove chaves vazias/undefined para não poluir o JSON criptografado. */
