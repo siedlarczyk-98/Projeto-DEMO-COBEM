@@ -5,6 +5,7 @@ e devolve a URL de acesso ao Paciente 360 com a hash AES-256 já montada.
 
 ```
 LP React  →  POST /api/leads  →  grava no Postgres  →  monta hash  →  redirect
+                                        └─ (assíncrono) conversão no RD Station
 ```
 
 ## Stack
@@ -68,7 +69,15 @@ No serviço da aplicação, aba **Variables**:
 | `P360_CURSO_ID` | caso clínico padrão | não |
 | `P360_CLASS_ID` | turma padrão | não |
 | `P360_BACK_URL` | retorno após o caso clínico | não |
+| `RD_CLIENT_ID` / `RD_CLIENT_SECRET` / `RD_REFRESH_TOKEN` | OAuth do RD Station | não* |
+| `RD_PUBLIC_API_KEY` | alternativa ao OAuth | não* |
+| `RD_CONVERSION_IDENTIFIER` | ex.: `cobem-2026-lp` | não |
+| `RD_TAGS` | ex.: `cobem-2026,evento` | não |
+| `RD_CAMPO_PERFIL` | nome de API do campo customizado de perfil | não |
 | `CORS_ORIGIN` | só se um front externo consumir esta API | não |
+
+\* sem nenhuma credencial do RD o envio fica desativado e o lead continua sendo
+gravado normalmente.
 
 `PORT` é injetada pelo Railway — não defina manualmente.
 
@@ -88,13 +97,65 @@ e o healthcheck aponta para `/api/health`.
 | `GET` | `/` | Landing page |
 | `GET` | `/api/health` | Healthcheck (status + conexão com o banco) |
 | `POST` | `/api/leads` | Cria o lead e devolve `{ leadId, redirectUrl }` |
-| `GET` | `/api/leads` | Últimos 200 leads |
+| `GET` | `/api/leads` | Últimos 200 leads (com o status do RD) |
+| `POST` | `/api/leads/rd/resync?limite=100` | Reenvia ao RD os leads `FALHOU`/`PENDENTE` |
 
 ### Exemplo
 
 ```bash
 curl -X POST https://seu-app.up.railway.app/api/leads   -H "Content-Type: application/json"   -d '{"nome":"Maria Silva","email":"maria@teste.com","telefone":"11987654321","perfil":"PROFESSOR"}'
 ```
+
+---
+
+## RD Station Marketing
+
+Cada lead salvo vira uma **conversão** no RD (`POST /platform/conversions`),
+enviada em background — o formulário não espera o RD para redirecionar o lead
+para o Paciente 360.
+
+O que vai no payload:
+
+| Campo no RD | Origem |
+|---|---|
+| `conversion_identifier` | `RD_CONVERSION_IDENTIFIER` — é o gatilho da automação |
+| `email`, `name` | lead |
+| `personal_phone` | telefone normalizado para `+55DDDNÚMERO` |
+| `tags` | `RD_TAGS` + `perfil-aluno` / `perfil-professor` |
+| campo customizado | `RD_CAMPO_PERFIL` (opcional), com `ALUNO`/`PROFESSOR` |
+
+### Régua pós-evento
+
+A segmentação da régua sai de duas peças, e as duas já vão em toda conversão:
+
+1. **`conversion_identifier`** — no RD, crie a automação com o gatilho
+   *"Conversão em landing page/formulário"* apontando para esse identificador.
+2. **Tag de perfil** — a condição `perfil-professor` vs. `perfil-aluno` separa
+   os dois fluxos dentro da mesma automação (ou em duas automações distintas).
+
+Como a tag é aplicada no momento da conversão, dá para montar a régua no RD
+**depois** do evento e ainda assim segmentar toda a base coletada.
+
+### Falhas e reenvio
+
+O status do envio fica na própria linha do lead (`rdStatus`, `rdSyncedAt`,
+`rdError`, `rdAttempts`):
+
+| Status | Significado |
+|---|---|
+| `ENVIADO` | conversão aceita pelo RD |
+| `FALHOU` | erro após 3 tentativas (backoff exponencial) |
+| `PENDENTE` | ainda não processado, ou queda no meio do envio |
+| `DESATIVADO` | ambiente sem credenciais do RD |
+
+Antes de ligar a régua, reprocesse o que ficou para trás:
+
+```bash
+curl -X POST https://seu-app.up.railway.app/api/leads/rd/resync?limite=200
+```
+
+> Esse endpoint está aberto, como o `GET /api/leads`. Se a demo virar produção,
+> proteja os dois antes.
 
 ---
 

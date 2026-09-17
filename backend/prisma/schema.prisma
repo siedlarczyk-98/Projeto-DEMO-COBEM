@@ -14,6 +14,13 @@ enum Perfil {
   REITORIA
 }
 
+enum RdStatus {
+  PENDENTE
+  ENVIADO
+  FALHOU
+  DESATIVADO
+}
+
 model Lead {
   id        String   @id @default(uuid())
   nome      String
@@ -26,6 +33,13 @@ model Lead {
   hash      String?  @db.Text
   redirectUrl String? @db.Text
 
+  // Auditoria da integracao RD Station Marketing
+  rdStatus     RdStatus  @default(PENDENTE)
+  rdSyncedAt   DateTime?
+  rdEventUuid  String?
+  rdError      String?   @db.Text
+  rdAttempts   Int       @default(0)
+
   ip        String?
   userAgent String?  @db.Text
 
@@ -34,4 +48,5 @@ model Lead {
 
   @@index([email])
   @@index([createdAt])
+  @@index([rdStatus])
 }
