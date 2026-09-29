@@ -118,11 +118,11 @@ export class RdStationService {
 
   /**
    * Tags são o gancho da régua pós-evento: dá para segmentar a automação por
-   * evento (RD_TAGS) e por perfil (perfil-aluno / perfil-professor) sem
+   * evento (RD_TAGS) e por perfil (perfil-aluno, perfil-reitoria…) sem
    * depender de campo customizado.
    */
   private montarTags(lead: RdLeadInput): string[] {
-    const base = (this.config.get<string>('RD_TAGS') ?? '')
+    const base = (this.config.get<string>('RD_TAGS') ?? 'demo-site-p360')
       .split(',')
       .map((t) => t.trim().toLowerCase())
       .filter(Boolean);
@@ -143,6 +143,8 @@ export class RdStationService {
       name: lead.nome,
       email: lead.email,
       personal_phone: this.formatarTelefone(lead.telefone),
+      // IES vai no campo padrão de empresa: não depende de campo customizado.
+      company_name: lead.ies ?? undefined,
       tags: this.montarTags(lead),
       available_for_mailing: true,
     };

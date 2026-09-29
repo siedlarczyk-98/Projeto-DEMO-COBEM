@@ -22,7 +22,7 @@ export interface P360Payload {
 export interface LeadInput {
   nome: string;
   email: string;
-  perfil: 'ALUNO' | 'PROFESSOR';
+  perfil: 'ALUNO' | 'PROFESSOR' | 'COORDENADOR' | 'REITORIA';
 }
 
 /** Overrides opcionais por requisição (sobrepõem o .env). */

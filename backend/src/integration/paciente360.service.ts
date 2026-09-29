@@ -24,9 +24,9 @@ export class Paciente360Service {
 
   constructor(private readonly config: ConfigService) {}
 
-  /** aluno -> usuario | professor -> professor */
+  /** aluno -> usuario | professor, coordenador e reitoria -> professor */
   private mapRole(perfil: LeadInput['perfil']): P360Role {
-    return perfil === 'PROFESSOR' ? 'professor' : 'usuario';
+    return perfil === 'ALUNO' ? 'usuario' : 'professor';
   }
 
   /** Remove chaves vazias/undefined para não poluir o JSON criptografado. */

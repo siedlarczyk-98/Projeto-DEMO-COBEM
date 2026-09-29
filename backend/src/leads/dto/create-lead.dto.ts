@@ -11,6 +11,8 @@ import {
 export enum PerfilDto {
   ALUNO = 'ALUNO',
   PROFESSOR = 'PROFESSOR',
+  COORDENADOR = 'COORDENADOR',
+  REITORIA = 'REITORIA',
 }
 
 export class CreateLeadDto {
@@ -28,7 +30,12 @@ export class CreateLeadDto {
   @Matches(/^\d{10,11}$/, { message: 'Telefone inválido. Use DDD + número.' })
   telefone: string;
 
-  @IsEnum(PerfilDto, { message: 'Perfil deve ser ALUNO ou PROFESSOR.' })
+  @IsString()
+  @Transform(({ value }) => String(value ?? '').trim().replace(/\s+/g, ' '))
+  @Length(2, 160, { message: 'Informe sua universidade (IES).' })
+  ies: string;
+
+  @IsEnum(PerfilDto, { message: 'Selecione um perfil válido.' })
   perfil: PerfilDto;
 
   // Overrides opcionais — úteis para campanhas/turmas diferentes na mesma LP.

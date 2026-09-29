@@ -1,9 +1,10 @@
-export type Perfil = 'ALUNO' | 'PROFESSOR';
+export type Perfil = 'ALUNO' | 'PROFESSOR' | 'COORDENADOR' | 'REITORIA';
 
 export interface LeadPayload {
   nome: string;
   email: string;
   telefone: string;
+  ies: string;
   perfil: Perfil;
   curso_id?: string;
   class_id?: string;

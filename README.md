@@ -72,7 +72,7 @@ No serviço da aplicação, aba **Variables**:
 | `RD_CLIENT_ID` / `RD_CLIENT_SECRET` / `RD_REFRESH_TOKEN` | OAuth do RD Station | não* |
 | `RD_PUBLIC_API_KEY` | alternativa ao OAuth | não* |
 | `RD_CONVERSION_IDENTIFIER` | ex.: `cobem-2026-lp` | não |
-| `RD_TAGS` | ex.: `cobem-2026,evento` | não |
+| `RD_TAGS` | padrão: `demo-site-p360` | não |
 | `RD_CAMPO_PERFIL` | nome de API do campo customizado de perfil | não |
 | `CORS_ORIGIN` | só se um front externo consumir esta API | não |
 
@@ -121,8 +121,9 @@ O que vai no payload:
 | `conversion_identifier` | `RD_CONVERSION_IDENTIFIER` — é o gatilho da automação |
 | `email`, `name` | lead |
 | `personal_phone` | telefone normalizado para `+55DDDNÚMERO` |
-| `tags` | `RD_TAGS` + `perfil-aluno` / `perfil-professor` |
-| campo customizado | `RD_CAMPO_PERFIL` (opcional), com `ALUNO`/`PROFESSOR` |
+| `company_name` | universidade (IES) informada no formulário |
+| `tags` | `RD_TAGS` + `perfil-aluno` / `perfil-professor` / `perfil-coordenador` / `perfil-reitoria` |
+| campo customizado | `RD_CAMPO_PERFIL` (opcional), com `ALUNO`/`PROFESSOR`/`COORDENADOR`/`REITORIA` |
 
 ### Régua pós-evento
 
