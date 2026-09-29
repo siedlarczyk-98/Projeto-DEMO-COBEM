@@ -27,7 +27,7 @@ model Lead {
   email     String
   telefone  String
   perfil    Perfil
-  ies       String?
+  ies       String
 
   // Auditoria da integracao Paciente 360
   hash      String?  @db.Text

@@ -4,8 +4,8 @@ export interface LeadPayload {
   nome: string;
   email: string;
   telefone: string;
-  ies: string;
   perfil: Perfil;
+  ies: string;
   curso_id?: string;
   class_id?: string;
   back_url?: string;

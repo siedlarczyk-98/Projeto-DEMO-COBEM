@@ -128,7 +128,10 @@ export default function App() {
         <fieldset className="perfil">
           <legend>Você é</legend>
           {PERFIS.map(({ valor, rotulo }) => (
-            <label key={valor} className={perfil === valor ? 'opcao ativa' : 'opcao'}>
+            <label
+              key={valor}
+              className={perfil === valor ? 'opcao ativa' : 'opcao'}
+            >
               <input
                 type="radio"
                 name="perfil"

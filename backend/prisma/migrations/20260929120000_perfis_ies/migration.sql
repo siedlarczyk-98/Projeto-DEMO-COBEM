@@ -1,6 +1,0 @@
--- AlterEnum
-ALTER TYPE "Perfil" ADD VALUE 'COORDENADOR';
-ALTER TYPE "Perfil" ADD VALUE 'REITORIA';
-
--- AlterTable
-ALTER TABLE "Lead" ADD COLUMN     "ies" TEXT;
