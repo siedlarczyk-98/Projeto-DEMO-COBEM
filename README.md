@@ -74,6 +74,7 @@ No serviço da aplicação, aba **Variables**:
 | `RD_CONVERSION_IDENTIFIER` | ex.: `cobem-2026-lp` | não |
 | `RD_TAGS` | padrão: `demo-site-p360` | não |
 | `RD_CAMPO_PERFIL` | nome de API do campo customizado de perfil | não |
+| `ADMIN_TOKEN` | protege `GET /api/leads` e o resync (sem ele as rotas ficam bloqueadas) | sim |
 | `CORS_ORIGIN` | só se um front externo consumir esta API | não |
 
 \* sem nenhuma credencial do RD o envio fica desativado e o lead continua sendo
@@ -97,8 +98,8 @@ e o healthcheck aponta para `/api/health`.
 | `GET` | `/` | Landing page |
 | `GET` | `/api/health` | Healthcheck (status + conexão com o banco) |
 | `POST` | `/api/leads` | Cria o lead e devolve `{ leadId, redirectUrl }` |
-| `GET` | `/api/leads` | Últimos 200 leads (com o status do RD) |
-| `POST` | `/api/leads/rd/resync?limite=100` | Reenvia ao RD os leads `FALHOU`/`PENDENTE` |
+| `GET` | `/api/leads` | Últimos 200 leads (com o status do RD) — exige `ADMIN_TOKEN` |
+| `POST` | `/api/leads/rd/resync?limite=100` | Reenvia ao RD os leads `FALHOU`/`PENDENTE` — exige `ADMIN_TOKEN` |
 
 ### Exemplo
 
@@ -152,11 +153,12 @@ O status do envio fica na própria linha do lead (`rdStatus`, `rdSyncedAt`,
 Antes de ligar a régua, reprocesse o que ficou para trás:
 
 ```bash
-curl -X POST https://seu-app.up.railway.app/api/leads/rd/resync?limite=200
+curl -X POST "https://seu-app.up.railway.app/api/leads/rd/resync?limite=200" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
-> Esse endpoint está aberto, como o `GET /api/leads`. Se a demo virar produção,
-> proteja os dois antes.
+> Esse endpoint e o `GET /api/leads` exigem o `ADMIN_TOKEN` — no header
+> `Authorization: Bearer`, em `x-admin-token` ou, pelo navegador, em `?token=`.
 
 ---
 
