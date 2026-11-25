@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { Headers } from '@nestjs/common';
 import { CreateLeadDto } from './dto/create-lead.dto';
+import { RdLpLeadDto } from './dto/rd-lp-lead.dto';
 import { LeadsService } from './leads.service';
 import { AdminTokenGuard } from './admin-token.guard';
 
@@ -23,6 +24,19 @@ export class LeadsController {
     @Headers('user-agent') userAgent: string,
   ) {
     return this.leads.create(dto, { ip, userAgent });
+  }
+
+  /**
+   * Chamado pelo script injetado na LP hospedada no RD Station, depois que o
+   * RD confirma a conversão. Ver rd-lp/script-lp.html.
+   */
+  @Post('rd-lp')
+  createFromRdLp(
+    @Body() dto: RdLpLeadDto,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent: string,
+  ) {
+    return this.leads.createFromRdLp(dto, { ip, userAgent });
   }
 
   /**

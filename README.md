@@ -75,7 +75,7 @@ No serviço da aplicação, aba **Variables**:
 | `RD_TAGS` | padrão: `demo-site-p360` | não |
 | `RD_CAMPO_PERFIL` | nome de API do campo customizado de perfil | não |
 | `ADMIN_TOKEN` | protege `GET /api/leads` e o resync (sem ele as rotas ficam bloqueadas) | sim |
-| `CORS_ORIGIN` | só se um front externo consumir esta API | não |
+| `CORS_ORIGIN` | origens externas que chamam esta API — a LP do RD precisa: `https://universidade.paciente360.com.br` | não |
 
 \* sem nenhuma credencial do RD o envio fica desativado e o lead continua sendo
 gravado normalmente.
@@ -149,6 +149,7 @@ O status do envio fica na própria linha do lead (`rdStatus`, `rdSyncedAt`,
 | `FALHOU` | erro após 3 tentativas (backoff exponencial) |
 | `PENDENTE` | ainda não processado, ou queda no meio do envio |
 | `DESATIVADO` | ambiente sem credenciais do RD |
+| `VIA_RD` | lead da LP hospedada no RD — a conversão já foi registrada pelo formulário do RD, não reenviamos |
 
 Antes de ligar a régua, reprocesse o que ficou para trás:
 
@@ -159,6 +160,43 @@ curl -X POST "https://seu-app.up.railway.app/api/leads/rd/resync?limite=200" \
 
 > Esse endpoint e o `GET /api/leads` exigem o `ADMIN_TOKEN` — no header
 > `Authorization: Bearer`, em `x-admin-token` ou, pelo navegador, em `?token=`.
+
+### LP hospedada no RD (acesso direto ao P360)
+
+A LP `universidade.paciente360.com.br/simulacao-clinica-para-medicina` é do
+próprio RD. Para quem converte nela entrar direto no Paciente 360, a página
+recebe o script [`rd-lp/script-lp.html`](rd-lp/script-lp.html):
+
+```
+form do RD → RD registra a conversão → RD chama window.conversionSuccess()
+          → (script) POST /api/leads/rd-lp → redirectUrl → aluno no P360
+                         └─ falhou ou passou de 8s → redirecionamento padrão da LP
+```
+
+O script substitui o `conversionSuccess` da LP, que é a função que o RD chama só
+depois de aceitar a conversão. Por isso não há conversão duplicada: o backend grava
+o lead com `origem = RD_LP` e `rdStatus = VIA_RD`, sem reenviar ao RD.
+
+Mapeamento do campo "Você é" (`cf_voce_e`), em `backend/src/leads/rd-lp.mapper.ts`:
+
+| Opção na LP | Perfil | Papel no P360 |
+|---|---|---|
+| Professor | `PROFESSOR` | professor |
+| Coordenação, Direção | `COORDENADOR` | professor |
+| Aluno, Administrativo, Outro (e qualquer opção nova) | `ALUNO` | usuario |
+
+O valor original fica em `perfilInformado`.
+
+Para ativar:
+
+1. No Railway, `CORS_ORIGIN=https://universidade.paciente360.com.br`.
+2. No script, troque `API_URL` pela URL de produção.
+3. Cole o script na LP (editor do RD → Configurações → Scripts) e republique.
+4. Teste com um e-mail de teste: deve aparecer o loading e cair no P360.
+
+Se o RD mudar os `name` dos campos ou o `id="conversion-form"`, o script cai no
+redirecionamento padrão. Nada quebra, mas o acesso direto deixa de acontecer.
+Confira os campos pelo HTML da LP se o acesso direto parar de funcionar.
 
 ---
 

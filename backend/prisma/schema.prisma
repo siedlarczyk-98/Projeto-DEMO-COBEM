@@ -19,6 +19,12 @@ enum RdStatus {
   ENVIADO
   FALHOU
   DESATIVADO
+  VIA_RD // conversao registrada pelo proprio formulario do RD (LP hospedada no RD)
+}
+
+enum OrigemLead {
+  LP     // formulario proprio (frontend deste repo)
+  RD_LP  // LP hospedada no RD Station, via script injetado
 }
 
 model Lead {
@@ -28,6 +34,10 @@ model Lead {
   telefone  String
   perfil    Perfil
   ies       String
+
+  origem          OrigemLead @default(LP)
+  // Valor bruto escolhido na LP do RD ("Direção", "Outro"...) antes do mapeamento
+  perfilInformado String?
 
   // Auditoria da integracao Paciente 360
   hash      String?  @db.Text

@@ -1,0 +1,133 @@
+<!--
+  Script da LP hospedada no RD Station
+  (universidade.paciente360.com.br/simulacao-clinica-para-medicina)
+
+  O que faz: depois que o RD confirma a conversão, em vez do redirecionamento
+  padrão da LP, chama o backend (POST /api/leads/rd-lp), que devolve a URL
+  autenticada do Paciente 360, e manda o aluno direto para ela.
+
+  Como funciona: o script da LP (rdlps.min.js) chama a função global
+  `window.conversionSuccess(resp)` quando a conversão dá certo. Substituímos essa
+  função e guardamos a original como plano B. Se o backend falhar ou passar de
+  TIMEOUT_MS, a original roda e o aluno segue o fluxo de hoje.
+
+  Onde colar: editor da LP no RD → Configurações → Scripts (de preferência no
+  fim do <body>). Funciona também no <head>: a instalação espera o DOM carregar.
+
+  ANTES DE COLAR: troque API_URL pela URL de produção do backend.
+-->
+<script>
+(function () {
+  var API_URL = 'https://SEU-APP.up.railway.app/api/leads/rd-lp';
+  var TIMEOUT_MS = 8000;
+  var FORM_ID = 'conversion-form';
+  var CAMPOS = ['name', 'email', 'company', 'mobile_phone', 'cf_voce_e'];
+
+  var copiaDoEnvio = null;
+
+  function lerCampos(form) {
+    var dados = {};
+    CAMPOS.forEach(function (nome) {
+      var el = form.querySelector('[name="' + nome + '"]');
+      dados[nome] = el ? String(el.value || '').trim() : '';
+    });
+    return dados;
+  }
+
+  // Copia os campos no momento do envio: o RD pode limpar o formulário antes
+  // de chamar conversionSuccess.
+  document.addEventListener('submit', function (e) {
+    if (e.target && e.target.id === FORM_ID) copiaDoEnvio = lerCampos(e.target);
+  }, true);
+
+  function mostrarLoading() {
+    if (document.getElementById('p360-loading')) return;
+    var el = document.createElement('div');
+    el.id = 'p360-loading';
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', 'polite');
+    el.style.cssText = [
+      'position:fixed', 'inset:0', 'z-index:2147483647',
+      'display:flex', 'flex-direction:column', 'align-items:center',
+      'justify-content:center', 'gap:16px', 'padding:24px',
+      'background:rgba(255,255,255,.97)', 'color:#1a1a1a', 'text-align:center',
+      'font:600 18px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif'
+    ].join(';');
+    el.innerHTML =
+      '<style>@keyframes p360spin{to{transform:rotate(360deg)}}</style>' +
+      '<div style="width:44px;height:44px;border:4px solid #ddd;' +
+      'border-top-color:#0a7cff;border-radius:50%;' +
+      'animation:p360spin 1s linear infinite"></div>' +
+      '<div>Preparando seu acesso ao Paciente 360…</div>';
+    document.body.appendChild(el);
+  }
+
+  function esconderLoading() {
+    var el = document.getElementById('p360-loading');
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+  }
+
+  function instalar() {
+    var atual = window.conversionSuccess;
+    if (atual && atual.__p360) return; // já instalado
+
+    var original = atual;
+    var emAndamento = false;
+
+    function substituta(resp) {
+      if (emAndamento) return;
+      emAndamento = true;
+
+      var finalizado = false;
+      function planoB() {
+        if (finalizado) return;
+        finalizado = true;
+        esconderLoading();
+        if (typeof original === 'function') original(resp);
+      }
+
+      var form = document.getElementById(FORM_ID);
+      var dados = copiaDoEnvio || (form ? lerCampos(form) : null);
+      if (!dados || !dados.email || typeof fetch !== 'function') return planoB();
+
+      mostrarLoading();
+      var timer = setTimeout(planoB, TIMEOUT_MS);
+
+      fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dados)
+      })
+        .then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(function (json) {
+          if (finalizado) return; // o plano B já rodou por timeout
+          if (!json || !json.redirectUrl) throw new Error('resposta sem redirectUrl');
+          finalizado = true;
+          clearTimeout(timer);
+          window.top.location.href = json.redirectUrl;
+        })
+        .catch(function (err) {
+          clearTimeout(timer);
+          if (window.console) console.warn('[p360] acesso direto falhou:', err);
+          planoB();
+        });
+    }
+
+    substituta.__p360 = true;
+    window.conversionSuccess = substituta;
+  }
+
+  // O RD define conversionSuccess num script inline dentro do <body>.
+  // DOMContentLoaded garante que instalamos depois dele; o load é uma segunda
+  // checagem caso algum script do RD redefina a função mais tarde.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', instalar);
+  } else {
+    instalar();
+  }
+  window.addEventListener('load', instalar);
+})();
+</script>

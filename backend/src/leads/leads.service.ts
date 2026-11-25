@@ -1,9 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Lead, Perfil, RdStatus } from '@prisma/client';
+import { Lead, OrigemLead, Perfil, Prisma, RdStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { Paciente360Service } from '../integration/paciente360.service';
+import { P360Overrides } from '../integration/paciente360.types';
 import { RdStationService } from '../integration/rdstation.service';
 import { CreateLeadDto } from './dto/create-lead.dto';
+import { RdLpLeadDto } from './dto/rd-lp-lead.dto';
+import { mapearPerfilRdLp, normalizarTelefoneRdLp } from './rd-lp.mapper';
 
 export interface RequestMeta {
   ip?: string;
@@ -26,25 +29,54 @@ export class LeadsService {
    * (ex.: client_key ausente), o contato não se perde.
    */
   async create(dto: CreateLeadDto, meta: RequestMeta = {}) {
-    const lead = await this.prisma.lead.create({
-      data: {
+    return this.registrar(
+      {
         nome: dto.nome,
         email: dto.email,
         telefone: dto.telefone,
         perfil: dto.perfil as Perfil,
         ies: dto.ies,
-        ip: meta.ip,
-        userAgent: meta.userAgent,
+        origem: OrigemLead.LP,
       },
+      { curso_id: dto.curso_id, class_id: dto.class_id, back_url: dto.back_url },
+      meta,
+    );
+  }
+
+  /**
+   * Lead vindo da LP hospedada no RD Station (script injetado na página).
+   * Quando esta rota é chamada o RD já registrou a conversão pelo próprio
+   * formulário — por isso NÃO reenviamos ao RD (rdStatus = VIA_RD).
+   */
+  async createFromRdLp(dto: RdLpLeadDto, meta: RequestMeta = {}) {
+    return this.registrar(
+      {
+        nome: dto.name,
+        email: dto.email,
+        telefone: normalizarTelefoneRdLp(dto.mobile_phone),
+        perfil: mapearPerfilRdLp(dto.cf_voce_e),
+        perfilInformado: dto.cf_voce_e,
+        ies: dto.company,
+        origem: OrigemLead.RD_LP,
+        rdStatus: RdStatus.VIA_RD,
+      },
+      {},
+      meta,
+    );
+  }
+
+  private async registrar(
+    dados: Omit<Prisma.LeadCreateInput, 'ip' | 'userAgent'>,
+    overrides: P360Overrides,
+    meta: RequestMeta,
+  ) {
+    const lead = await this.prisma.lead.create({
+      data: { ...dados, ip: meta.ip, userAgent: meta.userAgent },
     });
 
     const { hash, url } = this.p360.buildUrl(
       { nome: lead.nome, email: lead.email, perfil: lead.perfil },
-      {
-        curso_id: dto.curso_id,
-        class_id: dto.class_id,
-        back_url: dto.back_url,
-      },
+      overrides,
     );
 
     await this.prisma.lead.update({
@@ -54,9 +86,11 @@ export class LeadsService {
 
     // Fire-and-forget: o lead não pode esperar o RD para ser redirecionado.
     // Quem falhar fica com rdStatus = FALHOU e volta no /leads/rd/resync.
-    void this.sincronizarComRd(lead);
+    if (lead.rdStatus !== RdStatus.VIA_RD) void this.sincronizarComRd(lead);
 
-    this.logger.log(`Lead ${lead.id} registrado (${lead.email})`);
+    this.logger.log(
+      `Lead ${lead.id} registrado (${lead.email}, origem ${lead.origem})`,
+    );
     return { leadId: lead.id, redirectUrl: url };
   }
 
@@ -143,7 +177,9 @@ export class LeadsService {
         email: true,
         telefone: true,
         perfil: true,
+        perfilInformado: true,
         ies: true,
+        origem: true,
         createdAt: true,
         rdStatus: true,
         rdSyncedAt: true,
