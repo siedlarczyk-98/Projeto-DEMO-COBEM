@@ -14,11 +14,11 @@
   Onde colar: editor da LP no RD → Configurações → Scripts (de preferência no
   fim do <body>). Funciona também no <head>: a instalação espera o DOM carregar.
 
-  ANTES DE COLAR: troque API_URL pela URL de produção do backend.
+  API_URL já aponta para produção (Railway). Se o domínio mudar, atualize aqui.
 -->
 <script>
 (function () {
-  var API_URL = 'https://SEU-APP.up.railway.app/api/leads/rd-lp';
+  var API_URL = 'https://demo-p360.up.railway.app/api/leads/rd-lp';
   var TIMEOUT_MS = 8000;
   var FORM_ID = 'conversion-form';
   var CAMPOS = ['name', 'email', 'company', 'mobile_phone', 'cf_voce_e'];
