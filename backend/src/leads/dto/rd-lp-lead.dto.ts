@@ -1,5 +1,12 @@
 import { Transform } from 'class-transformer';
-import { IsEmail, IsString, Length, Matches } from 'class-validator';
+import {
+  IsEmail,
+  IsOptional,
+  IsString,
+  Length,
+  Matches,
+  MaxLength,
+} from 'class-validator';
 
 /**
  * Corpo enviado pelo script injetado na LP hospedada no RD Station.
@@ -31,9 +38,14 @@ export class RdLpLeadDto {
   @Matches(/^\d{8,15}$/, { message: 'Telefone inválido.' })
   mobile_phone: string;
 
-  /** "Você é": Direção, Coordenação, Professor, Administrativo, Aluno, Outro. */
+  /**
+   * "Você é": Direção, Coordenação, Professor, Administrativo, Aluno, Outro.
+   * Opcional: há LPs sem esse campo (ex.: live360-indicacao-alunos). Vazio
+   * cai no padrão do mapper (ALUNO), o de menor privilégio.
+   */
+  @IsOptional()
   @IsString()
   @Transform(({ value }) => String(value ?? '').trim())
-  @Length(1, 60, { message: 'Informe o perfil.' })
-  cf_voce_e: string;
+  @MaxLength(60, { message: 'Perfil inválido.' })
+  cf_voce_e?: string;
 }
